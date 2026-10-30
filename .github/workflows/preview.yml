@@ -1,0 +1,58 @@
+# Plan morning-digest § 3 and § 4. Builds the preview and publishes it to GitHub Pages.
+#
+# The HTML is built here and never committed: a preview in the repo cannot have its marker taken
+# off again (ADR 0003). The banner's marker comes from the repository variable LANE_MARKER, so
+# § 4 is this workflow run again with that variable cleared — same link, uploaded over.
+name: preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      night:
+        description: The night to save, as YYYY-MM-DD
+        default: "2026-10-28"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time, and never cancel one halfway: the link is public while it runs.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Save the page
+        env:
+          LANE_MARKER: ${{ vars.LANE_MARKER }}
+        run: pnpm preview "${{ inputs.night }}" dist/index.html
+
+      - name: Say what the banner carries
+        run: grep -o 'class="marker">[^<]*' dist/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
