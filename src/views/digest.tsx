@@ -1,9 +1,7 @@
-import type { DigestRow, Night } from '../digest/types.js';
+import { byJob } from '../digest/order.js';
+import type { Night } from '../digest/types.js';
 
 const dash = <span class="mute">—</span>;
-
-// Plain code-unit order, so the page and any other reader sort the same way.
-const byJob = (a: DigestRow, b: DigestRow) => (a.job < b.job ? -1 : a.job > b.job ? 1 : 0);
 
 export function DigestPage({ digest }: { digest: Night }) {
   const rows = [...digest.rows].sort(byJob);

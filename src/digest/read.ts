@@ -4,6 +4,7 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { byJob } from './order.js';
 import type { DigestRow, JobStatus, Night, ReadNight } from './types.js';
 
 // One line of the log, after parsing. Parse at the edge, trust the types after (styleguide).
@@ -91,7 +92,7 @@ export const readNight: ReadNight = (runsDir: string, night: string): Night | nu
     throw err;
   }
 
-  const byJob = new Map<string, DigestRow>();
+  const perJob = new Map<string, DigestRow>();
   let badLines = 0;
 
   for (const line of text.split('\n')) {
@@ -102,12 +103,10 @@ export const readNight: ReadNight = (runsDir: string, night: string): Night | nu
       badLines += 1;
       continue;
     }
-    byJob.set(entry.job, fold(entry, byJob.get(entry.job)));
+    perJob.set(entry.job, fold(entry, perJob.get(entry.job)));
   }
 
-  // Sorted by job, by code unit so every machine agrees: the page is sorted by job and the JSON
-  // must not disagree with it (ADR 0001).
-  const rows = [...byJob.values()].sort((a, b) => (a.job < b.job ? -1 : a.job > b.job ? 1 : 0));
+  const rows = [...perJob.values()].sort(byJob);
 
   return { night, rows, badLines };
 };

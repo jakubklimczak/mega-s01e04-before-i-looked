@@ -1,15 +1,13 @@
 import { Hono } from 'hono';
 import { loadConfig, type RigConfig } from './config.js';
+import { byJob } from './digest/order.js';
 import { readNight as defaultReadNight } from './digest/read.js';
-import type { DigestRow, ReadNight } from './digest/types.js';
+import type { ReadNight } from './digest/types.js';
 import { lane } from './lane.js';
 import { readStatus } from './status.js';
 import { DigestPage } from './views/digest.js';
 import { Layout } from './views/layout.js';
 import { StatusBoard } from './views/status.js';
-
-// Plain code-unit order, the same as the page's, so the JSON and the page never disagree (ADR 0001).
-const byJob = (a: DigestRow, b: DigestRow) => (a.job < b.job ? -1 : a.job > b.job ? 1 : 0);
 
 export function createApp(config: RigConfig = loadConfig(), readNight: ReadNight = defaultReadNight) {
   const app = new Hono();

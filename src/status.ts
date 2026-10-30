@@ -4,7 +4,10 @@ import { readNight as defaultReadNight } from './digest/read.js';
 import type { DigestRow, ReadNight } from './digest/types.js';
 import { lastBeat, type Beat } from './heartbeat.js';
 
-// Counts are per job, by the job's last status that night (not per log line).
+// Counts are per job, not per log line, and they partition the night's jobs: a job that failed
+// counts as fail, one that retried at all counts as retry even if it ended ok, the rest are ok.
+// Counting by last status alone would leave retry at 0 for a night full of retries, which is
+// the one thing someone scanning the board at breakfast needs to see.
 export type Counts = { ok: number; retry: number; fail: number };
 
 // counts is null when the night could not be read (file gone since the listing, or an I/O fault).
@@ -32,7 +35,11 @@ export function nightsOnDisk(runsDir: string): string[] {
 
 export function countJobs(rows: DigestRow[]): Counts {
   const counts: Counts = { ok: 0, retry: 0, fail: 0 };
-  for (const row of rows) counts[row.lastStatus] += 1;
+  for (const row of rows) {
+    if (row.lastStatus === 'fail') counts.fail += 1;
+    else if (row.retries > 0 || row.lastStatus === 'retry') counts.retry += 1;
+    else counts.ok += 1;
+  }
   return counts;
 }
 
